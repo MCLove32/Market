@@ -5,10 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.Configuration;
 import org.jetbrains.annotations.Contract;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class MarketConfig {
 
@@ -21,20 +18,35 @@ public class MarketConfig {
         Configuration config = Market.superMarket().getMarketConfig();
 
         int i = 0;
-        if (config.isSet("market." + mmid + ".amount")) {
-            i+= config.getDoubleList("market." + mmid + ".amount").size();
+        List<Double> list = new ArrayList<>();
+
+        if (config.isSet("market." + mmid)) {
+            list = config.getDoubleList("market." + mmid + ".amount");
+            if (list.isEmpty()) {
+                list = new ArrayList<>(Collections.singleton(config.getDouble("market." + mmid + ".amount")));
+            }
         }
 
-        Bukkit.broadcast(Component.text("あああ" + i));
+        i+= list.size();
 
         saveOne(i, amount, money, mmid);
-        checkMarket(mmid);
     }
 
     public static void checkMarket(String mmid) {
 
         Configuration config = Market.superMarket().getMarketConfig();
-        List<Double> list = config.getDoubleList("market." + mmid + ".amount");
+        List<Double> list = new ArrayList<>();
+
+        if (config.isSet("market." + mmid)) {
+            list = config.getDoubleList("market." + mmid + ".amount");
+            if (list.isEmpty()) {
+                list = new ArrayList<>(Collections.singleton(config.getDouble("market." + mmid + ".amount")));
+            }
+        }
+
+        int listed;
+        if (list.size() == limit) listed = limit;
+        else listed = list.size();
 
         double count = 0;
         for (double dob : list) {
@@ -44,35 +56,53 @@ public class MarketConfig {
             marketMap.put(mmid, count);
             return;
         }
-        marketMap.put(mmid, count / limit);
+        marketMap.put(mmid, count / listed);
     }
 
     public static void saveOne(int i, int amount, double money, String mmid) {
 
         Configuration config = Market.superMarket().getMarketConfig();
-        double get = money / amount;
+        List<Double> list = new ArrayList<>();
 
         int count = i + amount;
-        Bukkit.broadcast(Component.text(count));
         if (count > limit) {
 
             int rem = count - limit;
-            List<Double> list = new ArrayList<>();
-            List<Double> gets = config.getDoubleList("market." + mmid + ".amount");
-            for (double m : gets) {
-                if (rem > 0) list.add(m);
-                rem--;
+
+            list = config.getDoubleList("market." + mmid + ".amount");
+            List<Double> gets = new ArrayList<>();
+            for (double dom : list) {
+                if (rem > 0) {
+                    gets.add(dom);
+                    rem--;
+                }
             }
-            gets.removeAll(list);
-            config.set("market." + mmid + ".amount", gets);
+            for (Double get : gets) {
+                list.remove(get);
+            }
+            config.set("market." + mmid + ".amount", list);
             Market.superMarket().saveMarketConfig();
         }
 
-        for (int one = 0; one < amount; one++) {
-            config.set("market." + mmid + ".amount", get);
-            Market.superMarket().saveMarketConfig();
+        if (config.isSet("market." + mmid)) {
 
-            Bukkit.broadcast(Component.text("あ"));
+            list = config.getDoubleList("market." + mmid + ".amount");
+
+            if (list.isEmpty()) {
+                list = new ArrayList<>(Collections.singleton(config.getDouble("market." + mmid + ".amount")));
+            }
         }
+
+        double get = money / amount;
+        Bukkit.broadcast(Component.text(get));
+
+        for (int one = 1; one <= amount; one++) {
+            list.add(get);
+        }
+
+        config.set("market." + mmid + ".amount", list);
+        Market.superMarket().saveMarketConfig();
+
+        checkMarket(mmid);
     }
 }
