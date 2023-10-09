@@ -28,6 +28,8 @@ public final class Market extends JavaPlugin implements PluginMessageListener {
 
     private File file;
     private FileConfiguration fileConfiguration;
+    private File file2;
+    private FileConfiguration fileConfiguration2;
 
     @Override
     public void onEnable() {
@@ -53,18 +55,26 @@ public final class Market extends JavaPlugin implements PluginMessageListener {
     public FileConfiguration getMarketConfig() {
         return fileConfiguration;
     }
+    public FileConfiguration getMarket2Config() {return fileConfiguration2;}
 
     private void create() {
 
         file = new File(getDataFolder(), "market.yml");
+        file2 = new File(getDataFolder(), "market2.yml");
         if (!file.exists()) {
             file.getParentFile().mkdirs();
             saveResource("market.yml", false);
         }
+        if (!file2.exists()) {
+            file2.getParentFile().mkdirs();
+            saveResource("market2.yml", false);
+        }
 
         fileConfiguration = new YamlConfiguration();
+        fileConfiguration2 = new YamlConfiguration();
         try {
             fileConfiguration.load(file);
+            fileConfiguration2.load(file2);
         } catch (IOException | InvalidConfigurationException e) {
             e.printStackTrace();
         }
@@ -73,6 +83,14 @@ public final class Market extends JavaPlugin implements PluginMessageListener {
     public void saveMarketConfig() {
         try {
             fileConfiguration.save(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void saveMarket2Config() {
+        try {
+            fileConfiguration2.save(file2);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -87,16 +105,21 @@ public final class Market extends JavaPlugin implements PluginMessageListener {
             if (s == null) continue;
             MarketConfig.checkMarket(s);
         }
+
+        ConfigurationSection section2 = getMarket2Config().getConfigurationSection("market");
+        if (section2 == null) return;
+        for (String s: section2.getKeys(false)) {
+            if (s == null) continue;
+            MarketConfig.checkMarket2(s);
+        }
     }
 
     public void setChannelMessage() {
         getServer().getMessenger().registerIncomingPluginChannel(this, "mmo:market", this);
-        getServer().getMessenger().registerOutgoingPluginChannel(this, "mmo:market");
     }
 
     public void unSetChannelMessage() {
         getServer().getMessenger().unregisterIncomingPluginChannel(this);
-        getServer().getMessenger().unregisterOutgoingPluginChannel(this);
     }
 
     @Override
@@ -106,15 +129,25 @@ public final class Market extends JavaPlugin implements PluginMessageListener {
 
             String mmid = ByteString.copyFrom(bytes).toStringUtf8();
             double d = 0;
+            double d2 = 0;
 
             if (MarketConfig.marketMap.containsKey(mmid)) d = MarketConfig.marketMap.get(mmid);
+            if (MarketConfig.market2Map.containsKey(mmid)) d2 = MarketConfig.market2Map.get(mmid);
 
             FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+            FriendlyByteBuf buf2 = new FriendlyByteBuf(Unpooled.buffer());
             buf.writeDouble(d);
-            MinecraftKey key = new MinecraftKey("mmo:market");
+            buf2.writeDouble(d2);
+
+            MinecraftKey key = new MinecraftKey("mmo:market1");
+            MinecraftKey key2 = new MinecraftKey("mmo:market2");
+
 
             PacketPlayOutCustomPayload packet = new PacketPlayOutCustomPayload(key, new PacketDataSerializer(buf));
             PlayerUtil.sendPacketPlayer(player, packet);
+
+            PacketPlayOutCustomPayload packet2 = new PacketPlayOutCustomPayload(key2, new PacketDataSerializer(buf2));
+            PlayerUtil.sendPacketPlayer(player, packet2);
         }
     }
 }

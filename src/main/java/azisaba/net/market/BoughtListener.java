@@ -2,6 +2,7 @@ package azisaba.net.market;
 
 import net.akarian.auctionhouse.listings.Listing;
 import net.akarian.auctionhouse.utils.events.ListingBoughtEvent;
+import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -24,6 +25,9 @@ public class BoughtListener implements Listener {
         int amount = item.getAmount();
         double money = listing.getPrice();
 
-        MarketConfig.save(mmid, amount, money);
+        Bukkit.getScheduler().runTaskAsynchronously(Market.superMarket(), ()-> {
+            MarketConfig.save1(mmid, amount, money);
+            MarketConfig.save2(mmid, amount);
+        });
     }
 }
